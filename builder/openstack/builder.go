@@ -20,7 +20,7 @@ import (
 )
 
 // The unique ID for this builder
-const BuilderId = "mitchellh.openstack"
+const BuilderId = "jonher937.openstackbuilder"
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
