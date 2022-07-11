@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -68,6 +69,27 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 			}).ExtractErr()
 			if err != nil {
 				err := fmt.Errorf("Error setting image metadata: %s", err)
+				ui.Error(err.Error())
+			}
+		}
+
+		// Due to bug in glance when multistore is used, internal fields are being included to the destination volume.
+		// These fields are reserved in glance and prohibts us from creating a new image from our volume.
+		vol := volumes.Get(blockStorageClient, volume)
+		volResult, err := vol.Extract()
+		if err == nil {
+			if _, ok := volResult.VolumeImageMetadata["os_glance_importing_to_stores"]; ok {
+				delete(volResult.VolumeImageMetadata, "os_glance_importing_to_stores")
+			}
+			if _, ok := volResult.VolumeImageMetadata["os_glance_failed_import"]; ok {
+				delete(volResult.VolumeImageMetadata, "os_glance_failed_import")
+			}
+
+			err = volumeactions.SetImageMetadata(blockStorageClient, volume, volumeactions.ImageMetadataOpts{
+				Metadata: volResult.VolumeImageMetadata,
+			}).ExtractErr()
+			if err != nil {
+				err := fmt.Errorf("Error cleaning image metadata: %s", err)
 				ui.Error(err.Error())
 			}
 		}
