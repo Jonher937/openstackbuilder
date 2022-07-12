@@ -77,14 +77,19 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 		// These fields are reserved in glance and prohibts us from creating a new image from our volume.
 		vol := volumes.Get(blockStorageClient, volume)
 		volResult, err := vol.Extract()
+		ui.Say(fmt.Sprintf("Volume image metadata: %v", volResult.VolumeImageMetadata))
 		if err == nil {
+			ui.Say("Err is nil, moving on")
 			if _, ok := volResult.VolumeImageMetadata["os_glance_importing_to_stores"]; ok {
+				ui.Say("Deleting key os_glance_importing_to_stores")
 				delete(volResult.VolumeImageMetadata, "os_glance_importing_to_stores")
 			}
 			if _, ok := volResult.VolumeImageMetadata["os_glance_failed_import"]; ok {
+				ui.Say("Deleting key os_glance_failed_import")
 				delete(volResult.VolumeImageMetadata, "os_glance_failed_import")
 			}
 
+			ui.Say(fmt.Sprintf("Setting volume image metadata to: %v", volResult.VolumeImageMetadata))
 			err = volumeactions.SetImageMetadata(blockStorageClient, volume, volumeactions.ImageMetadataOpts{
 				Metadata: volResult.VolumeImageMetadata,
 			}).ExtractErr()
