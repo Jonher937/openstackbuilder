@@ -92,6 +92,8 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 				err := fmt.Errorf("Error cleaning image metadata: %s", err)
 				ui.Error(err.Error())
 			}
+		} else {
+			ui.Error(err.Error())
 		}
 
 		image, err := volumeactions.UploadImage(blockStorageClient, volume, volumeactions.UploadImageOpts{
